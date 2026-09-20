@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Kurs</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #000000;
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .bitcoin-display {
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .title {
+            color: #FFD700;
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 45px;
+            letter-spacing: 2px;
+        }
+
+        .currency {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .usd-label {
+            color: #ff3030;
+        }
+
+        .eur-label {
+            color: #3085ff;
+        }
+
+        .price {
+            font-size: 52px;
+            font-weight: bold;
+            margin-bottom: 35px;
+        }
+
+        .usd-price {
+            color: #ff3030;
+        }
+
+        .eur-price {
+            color: #3085ff;
+        }
+
+        .info {
+            color: #aaaaaa;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-top: 25px;
+        }
+
+        .error {
+            color: #ff3030;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="bitcoin-display">
+
+    <div class="title">
+        ₿ BITCOIN
+    </div>
+
+    <div class="currency usd-label">
+        US-DOLLAR
+    </div>
+
+    <div class="price usd-price" id="usd">
+        Wird geladen...
+    </div>
+
+    <div class="currency eur-label">
+        EURO
+    </div>
+
+    <div class="price eur-price" id="eur">
+        Wird geladen...
+    </div>
+
+    <div class="info" id="status">
+        Bitcoin-Kurs wird abgerufen...
+    </div>
+
+</div>
+
+<script>
+
+const AKTUALISIERUNG = 2 * 60 * 1000;
+
+let letzterKurs = null;
+let letzteAktualisierung = null;
+
+
+/* --------------------------------
+   Bitcoin-Kurs laden
+-------------------------------- */
+
+async function bitcoinKursLaden() {
+
+    const status = document.getElementById("status");
+
+    try {
+
+        const antwort = await fetch(
+            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd,eur"
+        );
+
+        if (!antwort.ok) {
+            throw new Error("Kurs konnte nicht geladen werden");
+        }
+
+        const daten = await antwort.json();
+
+        const usd = daten.bitcoin.usd;
+        const eur = daten.bitcoin.eur;
+
+        /* Kurs speichern */
+
+        letzterKurs = {
+            usd: usd,
+            eur: eur
+        };
+
+        letzteAktualisierung = new Date();
+
+
+        /* Dollar anzeigen */
+
+        document.getElementById("usd").textContent =
+            usd.toLocaleString("de-DE", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + " $";
+
+
+        /* Euro anzeigen */
+
+        document.getElementById("eur").textContent =
+            eur.toLocaleString("de-DE", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + " €";
+
+
+        /* Aktualisierungszeit */
+
+        const naechsteAktualisierung =
+            new Date(Date.now() + AKTUALISIERUNG);
+
+        status.className = "info";
+
+        status.innerHTML =
+            "Aktualisiert: " +
+            letzteAktualisierung.toLocaleTimeString("de-DE") +
+            "<br>" +
+            "Nächste Aktualisierung: " +
+            naechsteAktualisierung.toLocaleTimeString("de-DE");
+
+
+        console.log(
+            "Bitcoin-Kurs aktualisiert:",
+            letzteAktualisierung.toLocaleTimeString("de-DE")
+        );
+
+    }
+
+    catch (fehler) {
+
+        console.error(fehler);
+
+        /* Letzten erfolgreichen Kurs behalten */
+
+        if (letzterKurs !== null) {
+
+            status.className = "info error";
+
+            status.innerHTML =
+                "Verbindung momentan nicht verfügbar<br>" +
+                "Letzter Kurs: " +
+                letzteAktualisierung.toLocaleTimeString("de-DE");
+
+        }
+
+        else {
+
+            status.className = "info error";
+
+            status.textContent =
+                "Bitcoin-Kurs konnte nicht geladen werden";
+
+        }
+
+    }
+}
+
+
+/* --------------------------------
+   Sofort starten
+-------------------------------- */
+
+bitcoinKursLaden();
+
+
+/* --------------------------------
+   Alle 2 Minuten aktualisieren
+-------------------------------- */
+
+setInterval(function() {
+
+    bitcoinKursLaden();
+
+}, AKTUALISIERUNG);
+
+</script>
+
+</body>
+</html>
