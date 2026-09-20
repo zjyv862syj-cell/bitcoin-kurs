@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#000000">
+
     <title>Bitcoin Kurs</title>
 
     <style>
@@ -67,8 +71,14 @@
         .info {
             color: #aaaaaa;
             font-size: 18px;
-            line-height: 1.6;
+            line-height: 1.7;
             margin-top: 25px;
+        }
+
+        .countdown {
+            color: #FFD700;
+            font-size: 20px;
+            font-weight: bold;
         }
 
         .error {
@@ -101,8 +111,16 @@
         Wird geladen...
     </div>
 
-    <div class="info" id="status">
-        Bitcoin-Kurs wird abgerufen...
+    <div class="info">
+
+        <div id="status">
+            Bitcoin-Kurs wird abgerufen...
+        </div>
+
+        <div class="countdown" id="countdown">
+            Nächste Aktualisierung: 02:00
+        </div>
+
     </div>
 
 </div>
@@ -113,11 +131,58 @@ const AKTUALISIERUNG = 2 * 60 * 1000;
 
 let letzterKurs = null;
 let letzteAktualisierung = null;
+let naechsteAktualisierung = Date.now() + AKTUALISIERUNG;
 
 
-/* --------------------------------
+/* =========================================
+   Display wach halten
+========================================= */
+
+let wakeLock = null;
+
+async function displayWachHalten() {
+
+    try {
+
+        if ("wakeLock" in navigator) {
+
+            wakeLock = await navigator.wakeLock.request("screen");
+
+            console.log("Display-Wachhalten aktiviert.");
+
+        }
+
+    } catch (fehler) {
+
+        console.log(
+            "Wake Lock konnte nicht aktiviert werden:",
+            fehler
+        );
+
+    }
+
+}
+
+
+/* =========================================
+   Wake Lock erneut aktivieren,
+   wenn die Seite wieder sichtbar wird
+========================================= */
+
+document.addEventListener("visibilitychange", function() {
+
+    if (document.visibilityState === "visible") {
+
+        displayWachHalten();
+
+    }
+
+});
+
+
+/* =========================================
    Bitcoin-Kurs laden
--------------------------------- */
+========================================= */
 
 async function bitcoinKursLaden() {
 
@@ -130,13 +195,18 @@ async function bitcoinKursLaden() {
         );
 
         if (!antwort.ok) {
-            throw new Error("Kurs konnte nicht geladen werden");
+
+            throw new Error(
+                "Kurs konnte nicht geladen werden"
+            );
+
         }
 
         const daten = await antwort.json();
 
         const usd = daten.bitcoin.usd;
         const eur = daten.bitcoin.eur;
+
 
         /* Kurs speichern */
 
@@ -145,40 +215,42 @@ async function bitcoinKursLaden() {
             eur: eur
         };
 
+
         letzteAktualisierung = new Date();
 
+        naechsteAktualisierung =
+            Date.now() + AKTUALISIERUNG;
 
-        /* Dollar anzeigen */
+
+        /* Dollar */
 
         document.getElementById("usd").textContent =
             usd.toLocaleString("de-DE", {
+
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
+
             }) + " $";
 
 
-        /* Euro anzeigen */
+        /* Euro */
 
         document.getElementById("eur").textContent =
             eur.toLocaleString("de-DE", {
+
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
+
             }) + " €";
 
 
-        /* Aktualisierungszeit */
-
-        const naechsteAktualisierung =
-            new Date(Date.now() + AKTUALISIERUNG);
+        /* Status */
 
         status.className = "info";
 
         status.innerHTML =
             "Aktualisiert: " +
-            letzteAktualisierung.toLocaleTimeString("de-DE") +
-            "<br>" +
-            "Nächste Aktualisierung: " +
-            naechsteAktualisierung.toLocaleTimeString("de-DE");
+            letzteAktualisierung.toLocaleTimeString("de-DE");
 
 
         console.log(
@@ -188,9 +260,11 @@ async function bitcoinKursLaden() {
 
     }
 
+
     catch (fehler) {
 
         console.error(fehler);
+
 
         /* Letzten erfolgreichen Kurs behalten */
 
@@ -215,19 +289,64 @@ async function bitcoinKursLaden() {
         }
 
     }
+
 }
 
 
-/* --------------------------------
-   Sofort starten
--------------------------------- */
+/* =========================================
+   Countdown
+========================================= */
+
+function countdownAktualisieren() {
+
+    const verbleibend =
+        Math.max(
+            0,
+            naechsteAktualisierung - Date.now()
+        );
+
+    const sekunden =
+        Math.ceil(verbleibend / 1000);
+
+    const minuten =
+        Math.floor(sekunden / 60);
+
+    const restSekunden =
+        sekunden % 60;
+
+    const anzeige =
+        String(minuten).padStart(2, "0") +
+        ":" +
+        String(restSekunden).padStart(2, "0");
+
+
+    document.getElementById("countdown").textContent =
+        "Nächste Aktualisierung: " + anzeige;
+
+}
+
+
+/* =========================================
+   Start
+========================================= */
+
+displayWachHalten();
 
 bitcoinKursLaden();
 
+countdownAktualisieren();
 
-/* --------------------------------
-   Alle 2 Minuten aktualisieren
--------------------------------- */
+
+/* Countdown jede Sekunde */
+
+setInterval(function() {
+
+    countdownAktualisieren();
+
+}, 1000);
+
+
+/* Bitcoin-Kurs alle 2 Minuten */
 
 setInterval(function() {
 
