@@ -16,11 +16,11 @@ Das Script wurde entwickelt, um eine einfache und übersichtliche Bitcoin-Kursan
 
 ## 👨‍💻 Autor
 
-**Ulrich**
+**Ulrich Koch**
 
 Erstellt: **2026**
 
-**Copyright © 2026 Ulrich**
+**Copyright © 2026 Ulrich Koch**
 
 ---
 
@@ -42,4 +42,4 @@ Bitte lass dabei den ursprünglichen Autorenhinweis im Quellcode bestehen.
 
 **Made with ❤️ and ₿**
 
-© 2026 Ulrich
+© 2026 Ulrich Koch
